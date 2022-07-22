@@ -9,7 +9,7 @@ from linebot.models import (
 #str that is used for identifying the postback data type
 SPLITTER = '::'
 # bot message for invalid message from user
-REMIND_MESSAGE = '位置情報を送信すると、\n近くのレストランを検索するよ\n画像を送ると、画像の中の文字を日本語に翻訳するよ'
+REMIND_MESSAGE = '位置情報を送信すると、\n近くのコンビニを検索するよ\n画像を送ると、画像の中の文字を日本語に翻訳するよ'
 
 #return error message according to api response status code
 def ERROR_MESSAGE(error_code):
@@ -30,7 +30,7 @@ def ERROR_MESSAGE(error_code):
 
 SETTING_LIST = [
     '言語',
-    '指定位置からのレストラン検索範囲',
+    '指定位置からのコンビニ検索範囲',
 ]
 
 # top menus excluding setting

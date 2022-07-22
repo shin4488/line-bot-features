@@ -30,7 +30,7 @@ def __reply_message(event, request_message):
     )
 
 """
-create quick access list for 「レストラン検索」「撮って翻訳」「選択して翻訳」
+create quick access list for 「コンビニ検索」「撮って翻訳」「選択して翻訳」
 """
 def __create_quickreply(user_id):
     quick_reply_list = []
@@ -56,7 +56,7 @@ def __create_quickreply(user_id):
     )
 
 """
-create setting options for 「言語」（language）「指定位置からのレストラン検索範囲」（range for searching restaurant）
+create setting options for 「言語」（language）「指定位置からのコンビニ検索範囲」（range for searching restaurant）
 @param setting_data -> 設定項目のリスト
 """
 def __create_subsetting_list(setting_data, user_id):
@@ -72,7 +72,7 @@ def __create_subsetting_list(setting_data, user_id):
     # dict_keysでは要素番号を指定して値を取得できないため、要素番号を指定可能なデータ型listに変換
     key_value_list = list(key_value_list)
     subsetting_postback_quickbuttons = []
-    # 設定項目分だけループ(設定項目：「言語」「レストラン検索範囲」など)
+    # 設定項目分だけループ(設定項目：「言語」「コンビニ検索範囲」など)
     for setting_menu_index in range(len(setting_menu_list)):
         # 「{"日本語":"ja", "英語":"en"}」(連想配列)を「["日本語":"ja","英語":"en"]」(リスト))に変換
         # postbackのdataには文字列しかいれられず、連想配列から直接文字列変換は不明なため、
@@ -130,7 +130,7 @@ def handle_postback_message(event):
 
     elif posted_data[0] == "言語":
         # 言語DB更新処理
-        # 新規レコード作成時はレストラン検索範囲は固定値とする
+        # 新規レコード作成時はコンビニ検索範囲は固定値とする
         target_document = db_service.get_document_reference('user_settings', user_id)
         dict_target_document = target_document.get().to_dict()
         if dict_target_document is None:
@@ -150,7 +150,7 @@ def handle_postback_message(event):
         messages.append(TextSendMessage(text=message_text))
         messages.append(__create_quickreply(user_id))
 
-    elif posted_data[0] == "指定位置からのレストラン検索範囲":
+    elif posted_data[0] == "指定位置からのコンビニ検索範囲":
         # 検索範囲DB更新処理
         # 新規レコード作成時は言語は固定値とする
         target_document = db_service.get_document_reference('user_settings', user_id)
