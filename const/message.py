@@ -35,7 +35,7 @@ SETTING_LIST = [
 
 # top menus excluding setting
 QUICK_ACCESS_TOP_MENUS = [
-    LocationAction(label='コンビニ検索'),
+    LocationAction(label='トイレ付きコンビニ検索'),
     CameraAction(label='撮って翻訳'),
     CameraRollAction(label='選択して翻訳'),
 ]
