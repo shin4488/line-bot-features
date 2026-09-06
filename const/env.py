@@ -15,10 +15,10 @@ PORT = int(os.getenv('PORT', 5000))
 # LINE
 CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', None)
 __CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
-if CHANNEL_SECRET is None:
+if not CHANNEL_SECRET or not CHANNEL_SECRET.strip():
     print('Specify LINE_CHANNEL_SECRET as environment variable.')
     sys.exit(1)
-if __CHANNEL_ACCESS_TOKEN is None:
+if not __CHANNEL_ACCESS_TOKEN or not __CHANNEL_ACCESS_TOKEN.strip():
     print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
     sys.exit(1)
 LINE_BOT_API = LineBotApi(__CHANNEL_ACCESS_TOKEN)
