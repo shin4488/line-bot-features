@@ -42,7 +42,9 @@ def detect_words(base64_encoded_image, user_id):
             monitoring.report_api_failure("vision", "api")
             return __translate_by_user_language(message.ERROR_MESSAGE(2200), user_id)
         if "fullTextAnnotation" in res_content:
-            target_text = res_content["fullTextAnnotation"]["text"].replace("\n", " ")
+            detected_text = res_content["fullTextAnnotation"]["text"]
+            if detected_text.strip():
+                target_text = detected_text.replace("\n", " ")
 
     translated_text = __translate_by_user_language(target_text, user_id)
     if len(translated_text) > 2000:

@@ -32,7 +32,7 @@
 `[Filtered]` とし、リクエスト本文・画像・位置情報・LINEユーザーID・認証情報・
 URL/クエリ・ローカル変数・任意のextra/contextを除去します。HTTPやDBのbreadcrumbも
 送信しません。原因調査にはスタックとAPI名・失敗種別・HTTPステータスを使います。
-トレース・プロファイル・ログ収集は無効、エラーは全件が送信対象です。
+トレース・プロファイル・ログ・自動セッション統計の収集は無効、エラーは全件が送信対象です。
 
 ## 実行環境と依存関係
 
@@ -50,7 +50,7 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python -m pip check
 .venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m py_compile main.py monitoring.py line/service.py store/service.py ocr/service.py util/util.py
+.venv/bin/python -m py_compile gunicorn.conf.py const/env.py main.py monitoring.py line/service.py store/service.py ocr/service.py util/util.py
 ```
 
 依存更新時は、新しい仮想環境で `requirements.in` をインストールしてから
@@ -81,3 +81,37 @@ Issueは修正コミットのデプロイと該当動作の再確認後にResolv
 [SDK設定](https://docs.sentry.io/platforms/python/configuration/options/)、
 [グルーピング](https://docs.sentry.io/platforms/python/usage/sdk-fingerprinting/)、
 [Render Python設定](https://render.com/docs/python-version)。
+
+## ローカルでの追加検証
+
+`unittest`は55件です。通常返信、画像・音声・動画・スタンプ、設定メニュー・保存、
+検索範囲全5段階、API/DBの障害、不正な応答、空・長文、複数イベント、設定不足、
+例外チェーン・並行処理時のSentryデータを確認します。
+
+`tests/test_gunicorn.py` は実際のGunicornとSentry SDKのHTTP送信を使います。
+送信先はlocalhostの模擬受信サーバーだけです。実際の送信バイト列から個人情報が
+消えていること、正常時にセッション統計などを送らないこと、Sentryが503でも
+Webhook処理が続くこと、ワーカータイムアウトの通知と再起動を検証します。
+ローカルでポートを開ける実行環境が必要です。テスト専用ルートは
+`tests/gunicorn_fixture.py` のみにあり、`main:app`には追加されません。
+
+追加検証で次を再現し、修正しました。
+
+- 店舗の任意項目（営業時間・評価・icon）の欠損で検索全体が失敗する。
+- 長い翻訳結果で店舗カードの本文上限を超える。
+- OCRの空文字や翻訳APIの空文字から、空のLINE返信を作ってしまう。
+- Sentry SDKがエラー以外のセッション統計を自動送信する。
+- このMacでGunicornのワーカー再起動がループする。不要な制御サーバーを
+  `gunicorn.conf.py` で無効化すると解消したため、その設定を追加。
+- 保存された検索範囲が無視される。設定メニューの定義からメートルに変換して適用。
+- LINEのチャネルシークレット・アクセストークンが空でも初期チェックを通る。空・空白は起動時に拒否。
+
+実APIの認証・利用上限・データ・LINE画面表示、Sentry本体の受信/グルーピング/通知、
+Renderでのデプロイや実負荷は、このローカル試験では保証しません。
+LINE返信が失敗するとHTTP 500でそのバッチの処理を中断する既存動作もテストで確認
+しています。後続イベントの再処理や、LINE側の再配信に対する重複防止は未実装です。
+OSによる強制終了・OOMもローカル試験の対象外です。
+
+APIの境界条件は [LINEの文字数仕様](https://developers.line.biz/en/docs/messaging-api/text-character-count/)
+と [Placesの応答定義](https://developers.google.com/maps/documentation/places/web-service/legacy/search-nearby)
+を参照しています。

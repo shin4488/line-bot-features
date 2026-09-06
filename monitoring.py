@@ -117,6 +117,7 @@ def init_monitoring():
             profiles_sample_rate=0.0,
             enable_logs=False,
             send_client_reports=False,
+            auto_session_tracking=False,
         )
     except Exception:
         # A monitoring configuration error should not take the bot offline.

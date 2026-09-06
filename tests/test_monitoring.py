@@ -93,3 +93,39 @@ class MonitoringTests(unittest.TestCase):
         with sentry_sdk.start_transaction(name="synthetic"):
             pass
         self.assertEqual(self.events, [])
+
+    def test_exception_chain_and_exception_group_are_scrubbed(self):
+        try:
+            try:
+                raise ValueError("SYNTHETIC_PRIVATE")
+            except ValueError as cause:
+                raise RuntimeError("SYNTHETIC_PRIVATE") from cause
+        except RuntimeError as error:
+            monitoring.capture_exception(error)
+        self.assertEqual([v["type"] for v in self.events[0]["exception"]["values"]],
+                         ["ValueError", "RuntimeError"])
+        try:
+            raise ExceptionGroup("SYNTHETIC_PRIVATE", [ValueError("SYNTHETIC_PRIVATE"),
+                                                      TypeError("SYNTHETIC_PRIVATE")])
+        except ExceptionGroup as error:
+            monitoring.capture_exception(error)
+        self.assertEqual(len(self.events), 2)
+        self.assertNotIn("SYNTHETIC_PRIVATE", json.dumps(self.events))
+
+    def test_standard_dsn_takes_precedence_and_local_default_is_development(self):
+        with patch.dict(os.environ, {"SENTRY_DSN": DSN, "SENTRY_DNS": "wrong-legacy",
+                                     "SENTRY_RELEASE": "explicit@commit"}, clear=True):
+            with patch("monitoring.sentry_sdk.init") as init:
+                self.assertTrue(monitoring.init_monitoring())
+        self.assertEqual(init.call_args.kwargs["dsn"], DSN)
+        self.assertEqual(init.call_args.kwargs["environment"], "development")
+        self.assertEqual(init.call_args.kwargs["release"], "explicit@commit")
+
+    def test_parallel_scopes_do_not_mix_tags(self):
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            list(pool.map(lambda service: monitoring.report_api_failure(service, "http", 503),
+                          ["places", "vision", "translation"] * 4))
+        self.assertEqual(len(self.events), 12)
+        for service in ("places", "vision", "translation"):
+            self.assertEqual(sum(e["tags"].get("external_service") == service for e in self.events), 4)

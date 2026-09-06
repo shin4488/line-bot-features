@@ -43,7 +43,8 @@ def translate(text, output_language):
         return message.ERROR_MESSAGE('translation_error')
 
     result = payload.get('result')
-    if not isinstance(result, dict) or not isinstance(result.get('text'), str):
+    if (not isinstance(result, dict) or not isinstance(result.get('text'), str)
+            or (text.strip() and not result['text'].strip())):
         monitoring.report_api_failure("translation", "response")
         return message.ERROR_MESSAGE('translation_error')
     return result['text']

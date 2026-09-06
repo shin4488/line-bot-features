@@ -17,7 +17,7 @@ import monitoring
 from tests.support import ENVIRONMENT, start_monitoring
 
 
-class ApplicationTests(unittest.TestCase):
+class ApplicationFixture(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Avoid real config and Firebase initialization, even on a developer's machine.
@@ -49,7 +49,9 @@ class ApplicationTests(unittest.TestCase):
         self.client = self.main.app.test_client()
 
     def post(self, events):
-        body = json.dumps({"events": events})
+        return self.post_body(json.dumps({"events": events}))
+
+    def post_body(self, body):
         signature = base64.b64encode(hmac.new(
             ENVIRONMENT["LINE_CHANNEL_SECRET"].encode(), body.encode(), hashlib.sha256
         ).digest()).decode()
@@ -61,6 +63,8 @@ class ApplicationTests(unittest.TestCase):
                 "source": {"type": "user", "userId": "SYNTHETIC_PRIVATE_USER"},
                 "message": {"type": "text", "id": "1", "text": "SYNTHETIC_PRIVATE_TEXT"}}
 
+
+class ApplicationTests(ApplicationFixture):
     def test_valid_empty_webhook_and_invalid_signatures_are_quiet(self):
         self.assertEqual(self.post([]).status_code, 200)
         self.assertEqual(self.client.get("/callback").status_code, 405)

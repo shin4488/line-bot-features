@@ -31,9 +31,12 @@ class ConvenienceStoreService():
 
         dict_login_user_document = db_service.get_login_user_document(self.__user_id)
         output_language = dict_login_user_document['language']
+        radius_by_selection = {selection: int(float(distance.removesuffix('km')) * 1000)
+                               for distance, selection in message.RANGE.items()}
+        search_range = str(dict_login_user_document.get('restaurant_range', 2))
         parameters = {
             'key': env.GOOGLE_API_KEY,
-            'radius': 300,
+            'radius': radius_by_selection.get(search_range, radius_by_selection['2']),
             'type': 'convenience_store',
             'language': output_language,
             'keyword': 'トイレ',
@@ -79,20 +82,27 @@ class ConvenienceStoreService():
         return [TextSendMessage(text=translated)]
 
     def __create_store_carousel(self, store):
-        image_url = store['icon']
         store_name = store['name']
         title = store_name
         if len(title) > 40:
             title = title[:37] + '...'
 
-        open_message = ''
-        if store['opening_hours']['open_now']:
-            open_message = util.translate_if_not_default_language('営業中', self.__user_id)
+        opening_hours = store.get('opening_hours') or {}
+        open_now = opening_hours.get('open_now')
+        if open_now is True:
+            status = '営業中'
+        elif open_now is False:
+            status = '営業時間外'
         else:
-            open_message = util.translate_if_not_default_language('営業時間外', self.__user_id)
-
-        detail_message = open_message + ' ' + \
-            self.__translated_rate_message + ': ' + str(store['rating']) + ' / 5'
+            status = '営業時間不明'
+        open_message = util.translate_if_not_default_language(status, self.__user_id)
+        rating = store.get('rating')
+        detail_message = open_message
+        if rating is not None:
+            detail_message += ' ' + self.__translated_rate_message + ': ' + str(rating) + ' / 5'
+        # LINE carousel columns with titles accept at most 60 characters.
+        if len(detail_message) > 60:
+            detail_message = detail_message[:57] + '...'
 
         location = store['geometry']['location']
         encoded_map_uri = 'https://www.google.co.jp/maps/?q=' + \

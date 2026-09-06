@@ -50,3 +50,53 @@ else:
 assert len(events) == 1, events
 assert events[0]["tags"]["operation"] == "startup"
 ''')
+
+    def test_invalid_firebase_key_is_reported_without_credential_contents(self):
+        self.run_script('''
+import os, json
+from tests.support import ENVIRONMENT, start_monitoring
+events = start_monitoring()
+os.environ.update(ENVIRONMENT)
+os.environ["FIREBASE_PRIVATE_KEY"] = "SYNTHETIC_PRIVATE"
+try:
+    import main
+except Exception:
+    pass
+else:
+    raise AssertionError("Invalid Firebase configuration must stop startup")
+assert len(events) == 1
+assert events[0]["tags"]["operation"] == "startup"
+assert "SYNTHETIC_PRIVATE" not in json.dumps(events)
+''')
+
+    def test_no_dsn_creates_no_sentry_transport(self):
+        self.run_script('''
+import socket
+from unittest.mock import patch
+import monitoring, sentry_sdk
+with patch.object(socket.socket, "connect", side_effect=AssertionError("Network forbidden")):
+    assert not monitoring.init_monitoring()
+    assert sentry_sdk.get_client().transport is None
+    monitoring.capture_exception(RuntimeError("synthetic"))
+    monitoring.report_api_failure("places", "http", 503)
+    monitoring.flush()
+''')
+
+    def test_empty_line_credentials_stop_startup_and_are_reported(self):
+        for key in ("LINE_CHANNEL_SECRET", "LINE_CHANNEL_ACCESS_TOKEN"):
+            with self.subTest(key=key):
+                self.run_script('''
+import os
+from tests.support import ENVIRONMENT, start_monitoring
+events = start_monitoring()
+os.environ.update(ENVIRONMENT)
+os.environ[KEY] = ""
+try:
+    import main
+except SystemExit:
+    pass
+else:
+    raise AssertionError("Empty LINE credentials must stop startup")
+assert len(events) == 1
+assert events[0]["tags"]["operation"] == "startup"
+'''.replace("KEY", repr(key)))
