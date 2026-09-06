@@ -9,6 +9,7 @@ from linebot.models import (
     URIAction,
 )
 import requests
+import monitoring
 import urllib.parse
 
 class ConvenienceStoreService():
@@ -38,13 +39,15 @@ class ConvenienceStoreService():
             'keyword': 'トイレ',
             'location': str(latitude) + ',' + str(longitude)
         }
-        store_response = requests.get(endpoint, headers=header, params=parameters)
-        store_result_json = store_response.json()
-
+        store_response = requests.get(endpoint, headers=header, params=parameters, timeout=monitoring.HTTP_TIMEOUT)
         if store_response.status_code != 200:
-            error_message = message.ERROR_MESSAGE(400)
-            translated_error_message = util.translate_if_not_default_language(error_message, self.__user_id)
-            return [TextSendMessage(text=translated_error_message)]
+            monitoring.report_api_failure("places", "http", store_response.status_code)
+            return self.__error_response()
+
+        store_result_json = store_response.json()
+        if store_result_json.get("status") not in {"OK", "ZERO_RESULTS"}:
+            monitoring.report_api_failure("places", "api")
+            return self.__error_response()
 
         store_results = store_result_json['results']
         if len(store_results) == 0:
@@ -69,6 +72,11 @@ class ConvenienceStoreService():
                 template=CarouselTemplate(columns=store_messages)
             )
         ]
+
+    def __error_response(self):
+        error_message = message.ERROR_MESSAGE(400)
+        translated = util.translate_if_not_default_language(error_message, self.__user_id)
+        return [TextSendMessage(text=translated)]
 
     def __create_store_carousel(self, store):
         image_url = store['icon']

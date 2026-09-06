@@ -8,12 +8,14 @@ from database import service as db_service
 
 import json
 import requests
+import monitoring
 
 """
 detect text from image sent to the bot using google vision api
 """
 def detect_words(base64_encoded_image, user_id):
     if env.GOOGLE_API_KEY is None:
+        monitoring.report_api_failure("vision", "configuration")
         error_msg = message.ERROR_MESSAGE('api_error')
         error_msg = util.translate_if_not_default_language(error_msg, user_id)
         return error_msg
@@ -21,25 +23,26 @@ def detect_words(base64_encoded_image, user_id):
     endpoint = 'https://vision.googleapis.com/v1/images:annotate?key=' + env.GOOGLE_API_KEY
     header = {'Content-Type':'application/json'}
     payload = {'requests':[{'image':{'content':base64_encoded_image}, 'features':[{'type':'TEXT_DETECTION'}]}]}
-    text_detection_res = requests.post(endpoint, data=json.dumps(payload), headers=header)
-    print(text_detection_res.status_code)
-    text_detection_result = text_detection_res.json()
+    text_detection_res = requests.post(endpoint, data=json.dumps(payload), headers=header, timeout=monitoring.HTTP_TIMEOUT)
 
     if text_detection_res.status_code != 200:
+        monitoring.report_api_failure("vision", "http", text_detection_res.status_code)
         target_text = message.ERROR_MESSAGE(2200)
         return __translate_by_user_language(target_text, user_id)
 
-    # get detected words from image
-    for res_content in text_detection_result.get('responses'):
-        if 'fullTextAnnotation' not in res_content.keys():
-            target_text = message.ERROR_MESSAGE(2100)
-        else:
-            target_text = res_content.get('fullTextAnnotation').get('text').replace('\n', ' ')
-            # call translation api. It returns '\n' for 'period'
-            #output = [
-            #    util.translate('原文', user_id) + '\n' + detectedText),
-            #    util.translate('翻訳後', user_id) + '\n' + util.translate(detectedText, user_id)
-            #]
+    text_detection_result = text_detection_res.json()
+    responses = text_detection_result.get("responses")
+    if not isinstance(responses, list) or not responses:
+        monitoring.report_api_failure("vision", "response")
+        return __translate_by_user_language(message.ERROR_MESSAGE(2200), user_id)
+
+    target_text = message.ERROR_MESSAGE(2100)
+    for res_content in responses:
+        if "error" in res_content:
+            monitoring.report_api_failure("vision", "api")
+            return __translate_by_user_language(message.ERROR_MESSAGE(2200), user_id)
+        if "fullTextAnnotation" in res_content:
+            target_text = res_content["fullTextAnnotation"]["text"].replace("\n", " ")
 
     translated_text = __translate_by_user_language(target_text, user_id)
     if len(translated_text) > 2000:

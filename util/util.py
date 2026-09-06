@@ -4,8 +4,8 @@ util methods for entire app
 
 from const import env, message
 from database import service as db_service
-import sys
 import requests
+import monitoring
 
 """
 return translated text if user language is not app default language
@@ -24,25 +24,26 @@ translation from parameter text by parameter language
 """
 def translate(text, output_language):
     if env.GAS_TRANSLATE_ENDPOINT is None:
+        monitoring.report_api_failure("translation", "configuration")
         return message.ERROR_MESSAGE('translation_error')
 
     #text - text that you want to translate, target - the language that you want to translate
     #no need the language of the raw text, possible to detect the language automatically
     parameter = {'text':text, 'target':output_language}
-    response = requests.get(env.GAS_TRANSLATE_ENDPOINT, params=parameter)
+    response = requests.get(env.GAS_TRANSLATE_ENDPOINT, params=parameter, timeout=monitoring.HTTP_TIMEOUT)
 
-    #the form of returned value is {result:{text:(translated text), target:(translated language)}, status:status_code}
-    if response.status_code != 200 or response.json().get('status') != 200:
+    if response.status_code != 200:
+        monitoring.report_api_failure("translation", "http", response.status_code)
         return message.ERROR_MESSAGE('translation_error')
 
-    result = response.json().get('result')
-    translated_text = result['text']
-    return translated_text
+    # Expected response: {result: {text: ..., target: ...}, status: 200}.
+    payload = response.json()
+    if payload.get('status') != 200:
+        monitoring.report_api_failure("translation", "api")
+        return message.ERROR_MESSAGE('translation_error')
 
-"""
-get error info
-"""
-def handle_failure(e):
-    exc_type, exc_obj, tb=sys.exc_info()
-    lineno=tb.tb_lineno
-    return str(lineno) + ':' + str(type(e)) + '\n' + str(e)
+    result = payload.get('result')
+    if not isinstance(result, dict) or not isinstance(result.get('text'), str):
+        monitoring.report_api_failure("translation", "response")
+        return message.ERROR_MESSAGE('translation_error')
+    return result['text']

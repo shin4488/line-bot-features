@@ -11,6 +11,7 @@ from ocr import service as ocr_service
 from database import service as db_service
 
 import copy
+import monitoring
 import base64
 from io import BytesIO
 from linebot.models import (
@@ -242,9 +243,6 @@ def handle_audio_message(event):
 handler all event from main.py
 """
 def call_message_handler(event):
-    # TODO:delete after debug
-    print(event)
-    print(str(event.timestamp) + ":" + event.source.user_id)
     messages = []
     try:
         if event.type == "postback":
@@ -264,17 +262,11 @@ def call_message_handler(event):
             messages = handle_audio_message(event)
         elif message_type == "sticker":
             messages = handle_sticker_message(event)
-        else:
-            print("method is not yet prepared")
-            # TODO:delete after debug
-            print(message_type)
     except Exception as error:
-        # TODO:delete after debug
-        print(util.handle_failure(error))
-        error_message = message.ERROR_MESSAGE("api_error")
-        user_id = event.source.user_id
-        messages = [TextSendMessage(text=util.translate_if_not_default_language(error_message, user_id))]
-        messages.append(__create_quickreply(event.source.user_id))
+        monitoring.capture_exception(error)
+        # The failure may be Firebase/translation itself. Do not call it again
+        # while constructing an error reply; preserve a reliable static fallback.
+        messages = [TextSendMessage(text=message.ERROR_MESSAGE("api_error"))]
     finally:
         if len(messages) != 0:
             __reply_message(event, messages)

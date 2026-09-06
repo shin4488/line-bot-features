@@ -12,8 +12,18 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
-from const import env
-from line import service as line_service
+import monitoring
+
+monitoring.init_monitoring()
+
+try:
+    from const import env
+    from line import service as line_service
+except (Exception, SystemExit) as error:
+    # Gunicorn catches import errors before sys.excepthook can report them.
+    monitoring.capture_exception(error, operation="startup")
+    monitoring.flush()
+    raise
 
 from flask import Flask, request, abort
 from linebot import WebhookHandler
@@ -28,7 +38,9 @@ handler = WebhookHandler(env.CHANNEL_SECRET)
 
 @app.route('/callback', methods=['POST'])
 def callback():
-    signature = request.headers['X-Line-Signature']
+    signature = request.headers.get('X-Line-Signature')
+    if not signature:
+        abort(400)
 
     # get request body as text
     body = request.get_data(as_text=True)
