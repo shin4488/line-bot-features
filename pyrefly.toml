@@ -1,0 +1,5 @@
+# Keep the editor's basic checks while resolving imports in the project venv.
+preset = "basic"
+project-includes = ["**/*.py"]
+python-interpreter-path = ".venv/bin/python"
+search-path = ["."]
