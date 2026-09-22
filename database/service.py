@@ -8,7 +8,6 @@ def get_login_user_document(user_id):
     target_document = get_document_reference('user_settings', user_id)
     dict_target_document = target_document.get().to_dict()
 
-    # if there is no document yet, make new document
     if dict_target_document is None:
         data = {
             'user_id': user_id,
@@ -29,7 +28,7 @@ def upsert(document, data):
     for key, value in data.items():
         escaped_data[key] = __escape_query(value)
 
-    # to upsert, set merge=True
+    # 今回の更新に含まれない保存済み設定を消さないよう、ドキュメント全体は置き換えない。
     document.set(escaped_data, merge=True)
     return document
 
@@ -37,7 +36,6 @@ def upsert(document, data):
 escape query str
 """
 def __escape_query(query):
-    # escape only string data
     if query is not str:
         return query
 
