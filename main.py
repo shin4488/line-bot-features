@@ -42,29 +42,21 @@ def callback():
     if not signature:
         abort(400)
 
-    # get request body as text
+    # 署名は受信した本文に対するものなので、JSONの解析・再シリアライズをせずSDKへ渡す。
     body = request.get_data(as_text=True)
 
-    # handle webhook body
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
     return 'OK'
 
-#fired when post back(click button in carousel)
 @handler.add(PostbackEvent)
-#fired when location info is sent
 @handler.add(MessageEvent, message=LocationMessage)
-#fired when text message is sent
 @handler.add(MessageEvent, message=TextMessage)
-#fired when text image is sent
 @handler.add(MessageEvent, message=ImageMessage)
-#fired when text video is sent
 @handler.add(MessageEvent, message=VideoMessage)
-#fired when text audio is sent
 @handler.add(MessageEvent, message=AudioMessage)
-#fired when sticker is sent
 @handler.add(MessageEvent, message=StickerMessage)
 # TODO: file event
 def main(event):
