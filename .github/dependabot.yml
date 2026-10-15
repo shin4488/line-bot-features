@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # mainへのマージごとに本番へ反映されるため、更新PRはエコシステムごとに週1件へまとめる。
+  # cooldownはセキュリティ更新には適用されない。
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      pip:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
