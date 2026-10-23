@@ -27,8 +27,8 @@ def translate(text, output_language):
         monitoring.report_api_failure("translation", "configuration")
         return message.ERROR_MESSAGE('translation_error')
 
-    #text - text that you want to translate, target - the language that you want to translate
-    #no need the language of the raw text, possible to detect the language automatically
+    # text: text to translate, target: language to translate into.
+    # The source language is detected automatically, so it is not sent.
     parameter = {'text':text, 'target':output_language}
     response = requests.get(env.GAS_TRANSLATE_ENDPOINT, params=parameter, timeout=monitoring.HTTP_TIMEOUT)
 

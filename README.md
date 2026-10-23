@@ -1,84 +1,83 @@
 # line-bot-features
 
-LINE Messaging API を利用した、各種便利機能を提供する Python / Flask 製のチャットボットアプリケーションです。  
-ユーザーからのテキストや画像メッセージを受信し、店舗情報の管理やOCRによる文字読み取りなどの処理を行います。
+LINE Messaging APIで動くPython / Flask製のチャットボットです。送られた位置情報の周辺でトイレのあるコンビニを探す機能と、画像の文字を読み取って翻訳する機能があります。
 
----
+## 機能
 
-## 主な機能
+| ユーザーが送るもの | ボットの返信 |
+| --- | --- |
+| 位置情報 | Google Places APIで周辺のコンビニを「トイレ」をキーワードに検索し、最大5件をカルーセルで返す。各店舗の営業中かどうか・評価・Googleマップへのリンクを表示する |
+| 画像 | Google Cloud Vision APIで画像内の文字を読み取り、ユーザーが設定した言語に翻訳して返す |
+| テキスト・動画・音声 | 使い方の案内を返す |
+| スタンプ | 同じスタンプを返す |
+| メニューの「Setting」 | 表示言語とコンビニの検索範囲（0.3km〜3km）を選び、Firestoreに保存する |
 
-- **メッセージ応答 / ルーティング**: LINE Messaging API の Webhook イベントを受信し、メッセージ内容に応じて適切な処理へディスパッチ。
-- **画像 OCR 処理**: 受信したレシートや画像からテキストを抽出し、データ化。
-- **店舗・支出データ管理**: 読み取ったデータやユーザー入力をデータベースへ保存・集計。
+返信には毎回クイックリプライのメニュー（トイレ付きコンビニ検索・撮って翻訳・選択して翻訳・Setting）を付けます。設定した言語が日本語以外なら、返信文をGoogle Apps Scriptの翻訳エンドポイントで翻訳します。
 
----
-
-## システムフロー
+## 処理の流れ
 
 ```mermaid
 flowchart LR
-    User["LINE ユーザー"] -->|"メッセージ / 画像送信"| LINE["LINE Platform"]
-    LINE -->|"Webhook (/callback)"| Flask["Flask アプリケーション<br>(main.py)"]
-    Flask --> Dispatch["サービス振分<br>(line/service.py)"]
-    Dispatch --> OCR["OCR 解析<br>(ocr/)"]
-    Dispatch --> Store["店舗・データ処理<br>(store/)"]
-    OCR --> DB[("データベース<br>(database/)")]
-    Store --> DB
-    Dispatch -->|"返信メッセージ"| LINE
+    User["LINEユーザー"] -->|"メッセージ"| Platform["LINE Platform"]
+    Platform -->|"Webhook (/callback)"| Main["main.py"]
+    Main --> Dispatch["line/service.py<br>イベントの振り分け・返信"]
+    Dispatch -->|"位置情報"| Store["store/service.py"]
+    Dispatch -->|"画像"| OCR["ocr/service.py"]
+    Store --> Places["Google Places API"]
+    OCR --> Vision["Cloud Vision API"]
+    Dispatch & Store & OCR --> Util["util/util.py<br>翻訳"]
+    Util --> GAS["Google Apps Script<br>翻訳エンドポイント"]
+    Dispatch & Store & OCR & Util --> DB["database/service.py"]
+    DB --> Firestore[("Firestore<br>ユーザー設定")]
+    Dispatch -->|"返信"| Platform
 ```
 
----
+## 必要な設定
 
-## 技術スタック
+`.env` は自動では読み込まないため、次の環境変数をシェルまたは実行環境に設定します。読み込んでいる箇所は `const/env.py` です。`.env.example` にはSentryの設定例だけを記載しています。
 
-- **言語 / フレームワーク**: Python 3, Flask, Gunicorn
-- **SDK / 外部API**: line-bot-sdk, Cloud Vision API / Tesseract (OCR)
-- **設定・実行環境**: Procfile (Heroku / 各種PaaS対応), Python venv
+| 用途 | 環境変数 |
+| --- | --- |
+| LINE Messaging API | `LINE_CHANNEL_SECRET`・`LINE_CHANNEL_ACCESS_TOKEN`（どちらかが空なら起動を中止） |
+| Firestore（Firebaseのサービスアカウント） | `FIREBASE_PROJECT_ID`・`FIREBASE_PRIVATE_KEY` など `FIREBASE_` で始まる各項目 |
+| Google Places API・Cloud Vision API | `GOOGLE_API_KEY` |
+| 翻訳（Google Apps Script） | `GOOGLE_APP_SCRIPTS_ENDPOINT` |
+| Sentryへのエラー送信 | `SENTRY_DSN` など（[docs/monitoring.md](docs/monitoring.md)） |
+| 待ち受けポート | `PORT`（既定値 5000） |
 
----
+## セットアップと起動
 
-## セットアップと実行
-
-### 1. 仮想環境の作成と依存関係のインストール
+`.python-version` のPythonで仮想環境を作り、依存パッケージをインストールします。エディタの設定は [docs/python-environment.md](docs/python-environment.md) を参照してください。
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python main.py
 ```
 
-### 2. 環境変数の設定
+`python main.py` はFlaskの開発サーバーを `0.0.0.0` の `PORT` で起動し、`/callback` でWebhookを受けます。環境変数で指定したLINEチャネル・Firestore・Google APIに実際に接続するため、接続先を確認してから起動してください。
 
-`.env.example` を参考に `.env` ファイルを作成し、必要なトークンを設定します。
+## テスト
 
 ```bash
-cp .env.example .env
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
-主な設定項目:
-- `LINE_CHANNEL_SECRET`: LINE Messaging API のチャネルシークレット
-- `LINE_CHANNEL_ACCESS_TOKEN`: LINE Messaging API のチャネルアクセストークン
-- データベース接続URLなど
-
-### 3. ローカル起動
-
-```bash
-python main.py
-```
-
-デフォルトでローカルサーバが起動し、`/callback` エンドポイントで Webhook を待ち受けます。
-
----
+テストは外部サービスをフェイクに置き換え、実際のLINE・Firestore・Google API・Sentryには接続しません。`tests/test_gunicorn.py` はlocalhostでGunicornと模擬のSentry受信サーバーを起動します。CIで実行する内容は [.github/workflows/test.yml](.github/workflows/test.yml)、テストで確認している内容は [docs/monitoring.md](docs/monitoring.md#ローカルでの追加検証) を参照してください。
 
 ## ディレクトリ構成
 
-```text
-line-bot-features/
-├── main.py                  # アプリケーションエントリポイント（Webhook 受信）
-├── line/                    # LINE メッセージイベントのハンドリングとサービス振り分け
-├── ocr/                     # 画像解析・文字認識モジュール
-├── store/                   # 店舗・支出情報のビジネスロジック
-├── database/                # データアクセス・永続化層
-├── const/                   # 定数および環境変数定義
-└── tests/                   # テストコード
-```
+| パス | 内容 |
+| --- | --- |
+| `main.py` | Flaskアプリ。`/callback` で署名を検証し、イベントを `line/` に渡す |
+| `line/` | イベントの種類ごとの処理、返信とクイックリプライの作成 |
+| `store/` | コンビニ検索（Google Places API） |
+| `ocr/` | 画像の文字認識（Cloud Vision API） |
+| `util/` | 翻訳 |
+| `database/` | Firestoreのユーザー設定の読み書き |
+| `const/` | 環境変数、Firebaseの初期化、返信文・メニューの定数 |
+| `monitoring.py` | Sentryへのエラー送信 |
+| `gunicorn.conf.py` | Gunicornの設定 |
+| `scripts/sentry_smoke.py` | デプロイ後にSentryへ合成エラーを1件送る確認用スクリプト |
+| `tests/` | テスト |
+| `docs/` | エラー監視とPython環境の説明 |

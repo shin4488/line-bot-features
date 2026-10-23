@@ -11,7 +11,9 @@ from sentry_sdk.integrations.flask import FlaskIntegration
 
 REPOSITORY = "line-bot-features"
 DEPLOY_ENVIRONMENT = "production"
-HTTP_TIMEOUT = (3.05, 10)  # connect/read seconds; never retry a webhook implicitly
+# (connect, read) seconds. Calls are not retried.
+# Requests advises a connect timeout slightly above a multiple of 3 s, the default TCP retransmission window.
+HTTP_TIMEOUT = (3.05, 10)
 _SERVICES = {"places", "vision", "translation"}
 _FAILURES = {"configuration", "http", "api", "response"}
 _OPERATIONS = {"startup", "message"}

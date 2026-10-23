@@ -1,5 +1,5 @@
 """
-OCR process by using Google OCR Web API
+OCR with the Google Cloud Vision API, translated into the user's language
 """
 
 from const import env, message

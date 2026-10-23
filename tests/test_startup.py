@@ -1,4 +1,4 @@
-"""Import the real updated libraries in a fresh process, with synthetic credentials."""
+"""Import the real libraries in a fresh process with synthetic credentials."""
 import subprocess
 import sys
 import unittest

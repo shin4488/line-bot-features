@@ -21,7 +21,7 @@ class ConvenienceStoreService():
         self.__translated_rate_message = util.translate_if_not_default_language('評価', self.__user_id)
 
     """
-    search convenience store with toilet location, language
+    search convenience stores with toilets near the location
     """
     def search_convenience_store(self, latitude, longitude):
         endpoint = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
@@ -65,7 +65,7 @@ class ConvenienceStoreService():
             store_messages.append(carouse)
 
             store_count += 1
-            # line messaging API can handle up to 5 carousels
+            # A carousel template accepts up to 10 columns; this bot shows at most 5 stores.
             if store_count >= 5:
                 break
 
@@ -84,6 +84,7 @@ class ConvenienceStoreService():
     def __create_store_carousel(self, store):
         store_name = store['name']
         title = store_name
+        # LINE carousel column titles accept at most 40 characters.
         if len(title) > 40:
             title = title[:37] + '...'
 

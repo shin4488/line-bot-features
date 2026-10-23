@@ -6,12 +6,11 @@ from linebot.models import (
     LocationAction, CameraAction, CameraRollAction
 )
 
-#str that is used for identifying the postback data type
+# Separates the fields of postback data.
 SPLITTER = '::'
-# bot message for invalid message from user
+# Usage guide sent in reply to text, video and audio messages.
 REMIND_MESSAGE = '位置情報を送信すると、\n近くのコンビニを検索するよ\n画像を送ると、画像の中の文字を日本語に翻訳するよ'
 
-#return error message according to api response status code
 def ERROR_MESSAGE(error_code):
     __ERROR_MESSAGE_LIST = {
         400: '結果を取得できませんでした',
