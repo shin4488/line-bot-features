@@ -15,12 +15,8 @@ import monitoring
 import base64
 from io import BytesIO
 from linebot.models import (
-    MessageEvent, TextMessage, LocationMessage, ImageMessage,
-    StickerMessage, PostbackEvent, VideoMessage, AudioMessage,
     TextSendMessage, StickerSendMessage,
-    QuickReplyButton, QuickReply,
-    URITemplateAction, MessageAction, PostbackAction,
-    CameraAction, CameraRollAction, LocationAction
+    QuickReplyButton, QuickReply, PostbackAction,
 )
 
 #reply message in LINE

@@ -5,9 +5,7 @@ initial __ means privately used const variables
 
 import os
 import sys
-from linebot import (
-    LineBotApi, WebhookHandler
-)
+from linebot import LineBotApi
 
 # entire app
 PORT = int(os.getenv('PORT', 5000))

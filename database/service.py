@@ -2,7 +2,7 @@
 database process
 """
 
-from const import database, env, message
+from const import database
 
 def get_login_user_document(user_id):
     target_document = get_document_reference('user_settings', user_id)
