@@ -32,9 +32,6 @@ def upsert(document, data):
     document.set(escaped_data, merge=True)
     return document
 
-"""
-escape query str
-"""
 def __escape_query(query):
     if query is not str:
         return query

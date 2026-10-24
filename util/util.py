@@ -36,6 +36,7 @@ def translate(text, output_language):
         return message.ERROR_MESSAGE('translation_error')
 
     result = payload.get('result')
+    # A blank translation of non-blank text would become an empty LINE reply, so treat it as a failure.
     if (not isinstance(result, dict) or not isinstance(result.get('text'), str)
             or (text.strip() and not result['text'].strip())):
         monitoring.report_api_failure("translation", "response")

@@ -32,10 +32,10 @@ Renderは `.python-version` に書いたバージョンのPythonを使います�
 
 ## マージ後の確認順序
 
-1. 検証サービスに `SENTRY_DSN` と `SENTRY_ENVIRONMENT=staging` を設定し、検証用PRを先にマージ。Renderで最新コミット・Pythonの版・ビルド・Liveを確認。
+1. 検証サービス（[line-bot-features-test](https://github.com/shin4488/line-bot-features-test) をデプロイするRenderのサービス）に `SENTRY_DSN` と `SENTRY_ENVIRONMENT=staging` を設定し、line-bot-features-testで同じ変更をしたPRを先にマージ。Renderで最新コミット・Pythonの版・ビルド・Liveを確認。
 2. 検証サービスの同じ環境で `python -m scripts.sentry_smoke` を明示実行。LINE送信やDB更新はせず、合成エラー `MonitoringSmokeTest` を1件送ります。出力されたevent IDだけでは受信成功ではありません。Sentry側で受信とenvironment/release/repository、個人情報がないことを確認してください。
 3. 送信先を確認した検証用LINEアカウントでテキスト返信・店舗検索・OCR・設定保存を確認。ローカルのテストだけでは実APIや実データの互換性を検証したことにはなりません。
-4. 本番サービスに `SENTRY_DSN` と `SENTRY_ENVIRONMENT=production` を設定し、本番PRをマージして同様に確認。本番と検証が別Issueになることも確認。
+4. 本番サービスに `SENTRY_DSN` と `SENTRY_ENVIRONMENT=production` を設定し、このリポジトリのPRをマージして同様に確認。本番と検証が別Issueになることも確認。
 5. SentryのIssue Alertで新規エラー・再発を通知するルールと通知先を確認。定期的にAIで全ログを読む運用は不要です。
 
 Issueは修正コミットのデプロイと該当動作の再確認後にResolveします。「しばらくイベントがない」だけではResolveしません。環境とreleaseを必ず確認します。監視設定不正はアプリ起動を止めず固定の警告を出すため、DSN設定後の受信確認が必要です。

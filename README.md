@@ -6,7 +6,7 @@ LINE Messaging APIで動くPython / Flask製のチャットボットです。送
 
 | ユーザーが送るもの | ボットの返信 |
 | --- | --- |
-| 位置情報 | Google Places APIで周辺のコンビニを「トイレ」をキーワードに検索し、最大5件をカルーセルで返す。各店舗の営業中かどうか・評価・Googleマップへのリンクを表示する |
+| 位置情報 | Google Places APIで「トイレ」をキーワードに周辺のコンビニを検索し、最大5件をカルーセルで返す。各店舗の営業中かどうか・評価・Googleマップへのリンクを表示する |
 | 画像 | Google Cloud Vision APIで画像内の文字を読み取り、ユーザーが設定した言語に翻訳して返す |
 | テキスト・動画・音声 | 使い方の案内を返す |
 | スタンプ | 同じスタンプを返す |
@@ -52,10 +52,13 @@ flowchart LR
 ```bash
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python main.py
 ```
 
-`python main.py` はFlaskの開発サーバーを `0.0.0.0` の `PORT` で起動し、`/callback` でWebhookを受けます。環境変数で指定したLINEチャネル・Firestore・Google APIに実際に接続するため、接続先を確認してから起動してください。
+次のコマンドでFlaskの開発サーバーを起動します。サーバーは `0.0.0.0` の、環境変数 `PORT` で指定したポートで待ち受け、`/callback` でWebhookを受けます。環境変数で指定したLINEチャネル・Firestore・Google APIに実際に接続するため、接続先を確認してから起動してください。
+
+```bash
+.venv/bin/python main.py
+```
 
 ## テスト
 
