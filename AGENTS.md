@@ -1,6 +1,6 @@
 # 開発ガイド
 
-`line-bot-features` はFlaskでLINE webhookを受けるPythonボット。入口は `main.py` の `/callback`、振り分けは `line/service.py`、機能は `store/`・`ocr/`、保存は `database/`。設定の参照箇所は `const/env.py`、起動定義は `Procfile`、依存は `requirements.txt`。
+`line-bot-features` はFlaskでLINE webhookを受けるPythonボット。入口は `main.py` の `/callback`、振り分けは `line/service.py`、機能は `store/`・`ocr/`、保存は `database/`。設定の参照箇所は `const/env.py`（Sentryの設定は `monitoring.py`）、起動定義は `Procfile`、依存は `requirements.txt`。
 
 ## 実行・検証の条件
 
