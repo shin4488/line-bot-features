@@ -9,14 +9,14 @@
 - `release`: `SENTRY_RELEASE` があればその値、なければ `line-bot-features@<RENDER_GIT_COMMIT>`。`RENDER_GIT_COMMIT` がない環境では末尾が `local` になります。
 - `repository` タグと、既定のグルーピングにリポジトリ名・環境を加えたfingerprint（[Sentryのグルーピング](https://docs.sentry.io/platforms/python/usage/sdk-fingerprinting/)）で、同じ例外でも本番と検証のIssueを分けます。一方のResolveは他方に影響しません。
 
-これらの環境変数は、RenderのEnvironmentで設定してください。`SENTRY_AUTH_TOKEN` はIssueの調査・Resolveに使うローカル管理用で、アプリには不要です。
+`SENTRY_DSN` と `SENTRY_ENVIRONMENT` は、RenderのEnvironmentで設定してください。`RENDER_GIT_COMMIT` はRenderが設定します（[Renderの既定の環境変数](https://render.com/docs/environment-variables)）。`SENTRY_RELEASE` を設定するとコミットが変わってもreleaseが変わらないため、通常は設定しません。`SENTRY_AUTH_TOKEN` はIssueの調査・Resolveに使うローカル管理用で、アプリには不要です。
 
 ## 収集するもの
 
 - Flaskの未処理例外（LINE返信失敗を含む。[SentryのFlask連携](https://docs.sentry.io/platforms/python/integrations/flask/)で収集）、起動時の設定・import失敗。
 - メッセージ処理で捕まえてエラー返信に変換した例外。
 - Places・Vision・翻訳APIのHTTP失敗、HTTP 200内のAPIエラー、不正な応答、設定不足。
-- HTTPの接続・読み取りにはそれぞれ3.05秒・10秒のタイムアウトを指定。タイムアウトと不正なJSONはメッセージ処理の例外として検知します。
+- Places・Vision・翻訳APIの呼び出しには、接続3.05秒・読み取り10秒のタイムアウトを指定。タイムアウトと不正なJSONはメッセージ処理の例外として検知します。LINE Messaging APIの呼び出しのタイムアウトは、line-bot-sdkの既定値（5秒）です。
 
 検索0件、OCR文字なし、署名不正、未対応イベントは監視エラーにしません。メッセージ処理で例外が起きたときの返信は固定メッセージにして、翻訳やDBの再呼び出しによる二次障害を避けます。
 

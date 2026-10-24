@@ -46,8 +46,7 @@ def __create_quickreply(user_id):
     )
 
 """
-create setting options for 「言語」（language）「指定位置からのコンビニ検索範囲」（range for searching convenience stores）
-@param setting_data -> カンマ区切りの設定項目名
+Build one quick reply button per setting in setting_data, the comma-separated names from message.SETTING_LIST. Each button posts back "subsetting::<setting name>::<label>:<value>,...", from which handle_postback_message builds the option buttons.
 """
 def __create_subsetting_list(setting_data, user_id):
     setting_menu_list = setting_data.split(",")
@@ -55,7 +54,6 @@ def __create_subsetting_list(setting_data, user_id):
         setting_menu_list[0]:message.LANGUAGES,
         setting_menu_list[1]:message.RANGE,
     }
-    # 次のpostbackでどの設定を変更するか判別できるよう、dataに設定項目名も入れる。
     key_value_list = postback_data_list.items()
     key_value_list = list(key_value_list)
     subsetting_postback_quickbuttons = []
@@ -66,6 +64,7 @@ def __create_subsetting_list(setting_data, user_id):
             QuickReplyButton(action=PostbackAction(
                 # 翻訳後のラベルが、LINEのアクションラベルの上限20文字を超えることがある。
                 label=util.translate_if_not_default_language(setting_menu_list[setting_menu_index], user_id)[:20],
+                # 次のpostbackでどの設定項目が選ばれたかわかるよう、dataに設定項目名も入れる。
                 data="subsetting" + message.SPLITTER + key_value_list[setting_menu_index][0] + message.SPLITTER
                 + ",".join(setting_contents)
             ))
@@ -216,7 +215,8 @@ def call_message_handler(event):
             messages = handle_sticker_message(event)
     except Exception as error:
         monitoring.capture_exception(error)
-        # The failure may come from Firebase or translation, so build the error reply without calling them again.
+        # The failure may come from Firestore or the translation API itself.
+        # Do not call them again while building the error reply; send a static message instead.
         messages = [TextSendMessage(text=message.ERROR_MESSAGE("api_error"))]
     finally:
         if len(messages) != 0:
