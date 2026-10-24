@@ -175,17 +175,24 @@ class ApplicationTests(ApplicationFixture):
         self.assertEqual(len(messages), 2)
         self.assertEqual(self.events, [])
 
-    def test_language_setting_preserves_firestore_merge_write(self):
-        document = Mock()
-        document.get.return_value.to_dict.return_value = None
-        event = {"type": "postback", "replyToken": "synthetic", "timestamp": 1,
-                 "source": {"type": "user", "userId": "synthetic-user"},
-                 "postback": {"data": "言語::English::en"}}
-        with patch.object(self.db, "get_document_reference", return_value=document):
-            self.assertEqual(self.post([event]).status_code, 200)
-        document.set.assert_called_once_with(
-            {"user_id": "synthetic-user", "language": "en", "restaurant_range": 2}, merge=True)
-        self.reply.assert_called_once()
+    def test_setting_postbacks_save_values_unchanged_with_merge(self):
+        # Synthetic, but in the LINE user ID format: U followed by 32 lowercase hex digits.
+        user_id = "U" + "0123456789abcdef" * 2
+        message = self.line.message
+        cases = [(f"言語::{label}::{code}", {"language": code, "restaurant_range": 2})
+                 for label, code in message.LANGUAGES.items()]
+        cases += [(f"指定位置からのコンビニ検索範囲::{label}::{value}", {"language": "ja", "restaurant_range": int(value)})
+                  for label, value in message.RANGE.items()]
+        for data, settings in cases:
+            with self.subTest(data=data):
+                document = Mock()
+                document.get.return_value.to_dict.return_value = None
+                event = {"type": "postback", "replyToken": "synthetic", "timestamp": 1,
+                         "source": {"type": "user", "userId": user_id}, "postback": {"data": data}}
+                with patch.object(self.db, "get_document_reference", return_value=document):
+                    self.assertEqual(self.post([event]).status_code, 200)
+                document.set.assert_called_once_with({"user_id": user_id, **settings}, merge=True)
+        self.assertEqual(self.reply.call_count, len(cases))
         self.assertEqual(self.events, [])
 
     def test_unhandled_event_type_is_quiet(self):
