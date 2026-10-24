@@ -24,20 +24,6 @@ def get_document_reference(collection_name, document_id):
     return target_collection.document(document_id)
 
 def upsert(document, data):
-    escaped_data = {}
-    for key, value in data.items():
-        escaped_data[key] = __escape_query(value)
-
     # 今回の更新に含まれない保存済み設定を消さないよう、ドキュメント全体は置き換えない。
-    document.set(escaped_data, merge=True)
+    document.set(data, merge=True)
     return document
-
-def __escape_query(query):
-    if query is not str:
-        return query
-
-    escape_list = ['$', '#', '[', ']', '{', '}', '+', '""', "''"]
-    for escape_str in escape_list:
-        query = query.replace(escape_str, '')
-
-    return query
