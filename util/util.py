@@ -1,5 +1,5 @@
 """
-util methods for entire app
+Translate text with the Google Apps Script endpoint.
 """
 
 from const import env, message
@@ -7,10 +7,6 @@ from database import service as db_service
 import requests
 import monitoring
 
-"""
-return translated text if user language is not app default language
-return param text if user language is app default language
-"""
 def translate_if_not_default_language(text, user_id):
     dict_login_user_document = db_service.get_login_user_document(user_id)
     output_language = dict_login_user_document['language']
@@ -19,16 +15,13 @@ def translate_if_not_default_language(text, user_id):
 
     return translate(text, output_language)
 
-"""
-translation from parameter text by parameter language
-"""
 def translate(text, output_language):
     if env.GAS_TRANSLATE_ENDPOINT is None:
         monitoring.report_api_failure("translation", "configuration")
         return message.ERROR_MESSAGE('translation_error')
 
-    #text - text that you want to translate, target - the language that you want to translate
-    #no need the language of the raw text, possible to detect the language automatically
+    # text: text to translate, target: language to translate into.
+    # The source language is detected automatically, so it is not sent.
     parameter = {'text':text, 'target':output_language}
     response = requests.get(env.GAS_TRANSLATE_ENDPOINT, params=parameter, timeout=monitoring.HTTP_TIMEOUT)
 
@@ -43,6 +36,7 @@ def translate(text, output_language):
         return message.ERROR_MESSAGE('translation_error')
 
     result = payload.get('result')
+    # A blank translation of non-blank text would become an empty LINE reply, so treat it as a failure.
     if (not isinstance(result, dict) or not isinstance(result.get('text'), str)
             or (text.strip() and not result['text'].strip())):
         monitoring.report_api_failure("translation", "response")

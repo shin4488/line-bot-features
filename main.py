@@ -21,6 +21,7 @@ try:
     from line import service as line_service
 except (Exception, SystemExit) as error:
     # Gunicorn catches import errors before sys.excepthook can report them.
+    # SystemExit is caught too because const.env calls sys.exit() when the LINE credentials are missing or blank.
     monitoring.capture_exception(error, operation="startup")
     monitoring.flush()
     raise

@@ -198,7 +198,7 @@ class EdgeCaseTests(ApplicationFixture):
         event = {"type": "postback", "replyToken": "synthetic", "timestamp": 1,
                  "source": {"type": "user", "userId": "synthetic"},
                  "postback": {"data": "言語::"}}
-        with patch.object(self.db, "get_document_reference", return_value=Mock()) as reference:
+        with patch.object(self.db, "get_document_reference", return_value=Mock()):
             with patch.object(self.db, "upsert") as upsert:
                 self.assertEqual(self.post([event]).status_code, 200)
                 upsert.assert_not_called()

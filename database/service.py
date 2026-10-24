@@ -1,8 +1,8 @@
 """
-database process
+Read and write user settings in Firestore.
 """
 
-from const import database, env, message
+from const import database
 
 def get_login_user_document(user_id):
     target_document = get_document_reference('user_settings', user_id)
@@ -32,9 +32,6 @@ def upsert(document, data):
     document.set(escaped_data, merge=True)
     return document
 
-"""
-escape query str
-"""
 def __escape_query(query):
     if query is not str:
         return query

@@ -1,26 +1,21 @@
 """
-const message
+Reply texts, menu actions and setting options.
 """
 
 from linebot.models import (
     LocationAction, CameraAction, CameraRollAction
 )
 
-#str that is used for identifying the postback data type
+# Separates the fields of postback data.
 SPLITTER = '::'
-# bot message for invalid message from user
+# Usage guide sent in reply to text, video and audio messages.
 REMIND_MESSAGE = '位置情報を送信すると、\n近くのコンビニを検索するよ\n画像を送ると、画像の中の文字を日本語に翻訳するよ'
 
-#return error message according to api response status code
+# The numeric keys only identify messages. They are not the status codes returned by the APIs.
 def ERROR_MESSAGE(error_code):
     __ERROR_MESSAGE_LIST = {
         400: '結果を取得できませんでした',
-        401: '結果を取得できませんでした\n申し訳ございませんが開発者にお問い合わせくださいwfshinya48@gmail.com',
         404: '検索条件にあう店舗がありません',
-        405: '不正なアクセスを検出しました',
-        429: '大変申し訳ございません\n今日はこれ以上検索できません\n明日またお会いできることを楽しみにしています',
-        500: '申し訳ございません、もう1度試してみてください\n良くならない時は開発者に問い合わせてみてくださいwfshinya48@gmail.com',
-        1404: '申し訳ございません。画像の中に翻訳できないコンテンツが含まれています\nもう一度画像を送るか、別の画像を送ってください',
         2100: '画像読み取りに失敗しました\n別の画像を送ってください',
         2200: '画像読み取りに失敗しました\nもう一度画像を送るか、別の画像を送ってください',
         'translation_error': 'Translation error...',
@@ -28,6 +23,8 @@ def ERROR_MESSAGE(error_code):
     }
     return __ERROR_MESSAGE_LIST[error_code]
 
+# Each name is also posted back to identify the setting to save, so it must match the names compared in handle_postback_message.
+# Keep language first and search range second, because their option lists are assigned by position.
 SETTING_LIST = [
     '言語',
     '指定位置からのコンビニ検索範囲',

@@ -1,5 +1,5 @@
 """
-OCR process by using Google OCR Web API
+Read text in images with the Google Cloud Vision API and translate it into the user's language.
 """
 
 from const import env, message
@@ -10,9 +10,6 @@ import json
 import requests
 import monitoring
 
-"""
-detect text from image sent to the bot using google vision api
-"""
 def detect_words(base64_encoded_image, user_id):
     if env.GOOGLE_API_KEY is None:
         monitoring.report_api_failure("vision", "configuration")
@@ -52,6 +49,7 @@ def detect_words(base64_encoded_image, user_id):
 
     return translated_text
 
+# Unlike util.translate_if_not_default_language, translate even into the default language (Japanese), because text in an image can be in any language.
 def __translate_by_user_language(text, user_id):
     dict_login_user_document = db_service.get_login_user_document(user_id)
     output_language = dict_login_user_document['language']

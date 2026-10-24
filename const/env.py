@@ -1,13 +1,11 @@
 """
-environmental valiable set for this app
-initial __ means privately used const variables
+Environment variables used by this app.
+Names starting with __ are used only in this module.
 """
 
 import os
 import sys
-from linebot import (
-    LineBotApi, WebhookHandler
-)
+from linebot import LineBotApi
 
 # entire app
 PORT = int(os.getenv('PORT', 5000))
