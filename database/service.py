@@ -1,5 +1,5 @@
 """
-database process
+Read and write user settings in Firestore.
 """
 
 from const import database

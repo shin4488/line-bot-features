@@ -33,6 +33,7 @@ class ConvenienceStoreService():
         output_language = dict_login_user_document['language']
         radius_by_selection = {selection: int(float(distance.removesuffix('km')) * 1000)
                                for distance, selection in message.RANGE.items()}
+        # restaurant_range is saved as an int, while the keys here are the string values of message.RANGE.
         search_range = str(dict_login_user_document.get('restaurant_range', 2))
         parameters = {
             'key': env.GOOGLE_API_KEY,

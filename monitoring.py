@@ -11,7 +11,7 @@ from sentry_sdk.integrations.flask import FlaskIntegration
 
 REPOSITORY = "line-bot-features"
 DEPLOY_ENVIRONMENT = "production"
-# (connect, read) seconds. Calls are not retried.
+# (connect, read) seconds. Never retry these calls implicitly while handling a webhook.
 # Requests advises a connect timeout slightly above a multiple of 3 s, the default TCP retransmission window.
 HTTP_TIMEOUT = (3.05, 10)
 _SERVICES = {"places", "vision", "translation"}
@@ -89,6 +89,7 @@ def before_breadcrumb(breadcrumb, hint):
 
 
 def init_monitoring():
+    # Existing deployments set the DSN as SENTRY_DNS, so read it as a fallback.
     dsn = os.getenv("SENTRY_DSN") or os.getenv("SENTRY_DNS")
     if not dsn:
         return False

@@ -1,5 +1,5 @@
 """
-const message
+Reply texts, menu actions and setting options.
 """
 
 from linebot.models import (
@@ -11,6 +11,7 @@ SPLITTER = '::'
 # Usage guide sent in reply to text, video and audio messages.
 REMIND_MESSAGE = '位置情報を送信すると、\n近くのコンビニを検索するよ\n画像を送ると、画像の中の文字を日本語に翻訳するよ'
 
+# The numeric keys only identify messages. They are not the status codes returned by the APIs.
 def ERROR_MESSAGE(error_code):
     __ERROR_MESSAGE_LIST = {
         400: '結果を取得できませんでした',
@@ -22,6 +23,8 @@ def ERROR_MESSAGE(error_code):
     }
     return __ERROR_MESSAGE_LIST[error_code]
 
+# Each name is also posted back to identify the setting to save, so it must match the names compared in handle_postback_message.
+# Keep language first and search range second, because their option lists are assigned by position.
 SETTING_LIST = [
     '言語',
     '指定位置からのコンビニ検索範囲',

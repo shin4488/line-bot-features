@@ -25,6 +25,7 @@ def __reply_message(event, request_message):
 
 def __create_quickreply(user_id):
     quick_reply_list = []
+    # Labels are replaced with each user's translation, so copy the shared actions first.
     quick_access_menu_list = copy.deepcopy(message.QUICK_ACCESS_TOP_MENUS)
     for quick_access_menu in quick_access_menu_list:
         translated_label = util.translate_if_not_default_language(quick_access_menu.label, user_id)
@@ -73,8 +74,7 @@ def __create_subsetting_list(setting_data, user_id):
     return subsetting_postback_quickbuttons
 
 """
-create setting options for language list or range distance lists
-「<各言語>」（each language）または「<距離>km」（range）
+Build one quick reply button per option. Each button posts back "<setting name>::<label>::<value>", which handle_postback_message uses to save the setting.
 """
 def __create_detail_setting_list(setting_type, detail_setting):
     detail_setting_list = []
@@ -216,8 +216,7 @@ def call_message_handler(event):
             messages = handle_sticker_message(event)
     except Exception as error:
         monitoring.capture_exception(error)
-        # The failure may be Firebase/translation itself. Do not call it again
-        # while constructing an error reply; preserve a reliable static fallback.
+        # The failure may come from Firebase or translation, so build the error reply without calling them again.
         messages = [TextSendMessage(text=message.ERROR_MESSAGE("api_error"))]
     finally:
         if len(messages) != 0:

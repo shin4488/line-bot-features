@@ -1,11 +1,6 @@
 # Python環境とエディタの設定
 
-依存パッケージはリポジトリ直下の `.venv` で管理する。環境を新しく作る場合は、`.python-version` のPythonを用意して以下を実行する。
-
-```sh
-python3.12 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-```
+依存パッケージはリポジトリ直下の `.venv` で管理する。作り方は [READMEのセットアップと起動](../README.md#セットアップと起動) を参照する。
 
 `pyrefly.toml`（[Pyreflyの設定](https://pyrefly.org/en/docs/configuration/)）はリポジトリ全体のPythonファイルに適用され、`.venv/bin/python` から依存パッケージを探す。この指定がない場合、Pyreflyがプロジェクト外のPython環境を参照し、`linebot.models` などのimportを `missing-import` として報告することがある。診断は未設定時と同じ `basic` を使用する。
 

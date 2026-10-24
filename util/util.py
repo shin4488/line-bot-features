@@ -1,5 +1,5 @@
 """
-util methods for entire app
+Translate text with the Google Apps Script endpoint.
 """
 
 from const import env, message
@@ -7,10 +7,6 @@ from database import service as db_service
 import requests
 import monitoring
 
-"""
-return translated text if user language is not app default language
-return param text if user language is app default language
-"""
 def translate_if_not_default_language(text, user_id):
     dict_login_user_document = db_service.get_login_user_document(user_id)
     output_language = dict_login_user_document['language']
@@ -19,9 +15,6 @@ def translate_if_not_default_language(text, user_id):
 
     return translate(text, output_language)
 
-"""
-translation from parameter text by parameter language
-"""
 def translate(text, output_language):
     if env.GAS_TRANSLATE_ENDPOINT is None:
         monitoring.report_api_failure("translation", "configuration")

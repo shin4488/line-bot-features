@@ -6,10 +6,10 @@
 
 - `SENTRY_DSN`: LINE BotプロジェクトのDSN。未設定なら監視を無効化します。既存設定との移行用に `SENTRY_DNS` も読みます。両方あれば `SENTRY_DSN` が優先です。
 - `SENTRY_ENVIRONMENT`: 本番は `production`、検証は `staging`。Render上で未指定なら、このリポジトリでは `production`。ローカルは `development`。
-- `release`: 通常 `line-bot-features@<RENDER_GIT_COMMIT>`。Render以外では `SENTRY_RELEASE` で明示できます。指定がなければ末尾は `local` です。
+- `release`: `SENTRY_RELEASE` があればその値、なければ `line-bot-features@<RENDER_GIT_COMMIT>`。`RENDER_GIT_COMMIT` がない環境では末尾が `local` になります。
 - `repository` タグと、既定のグルーピングにリポジトリ名・環境を加えたfingerprint（[Sentryのグルーピング](https://docs.sentry.io/platforms/python/usage/sdk-fingerprinting/)）で、同じ例外でも本番と検証のIssueを分けます。一方のResolveは他方に影響しません。
 
-`.env` は自動では読みません。RenderのEnvironmentで設定してください。`SENTRY_AUTH_TOKEN` はIssueの調査・Resolveに使うローカル管理用で、アプリには不要です。
+これらの環境変数は、RenderのEnvironmentで設定してください。`SENTRY_AUTH_TOKEN` はIssueの調査・Resolveに使うローカル管理用で、アプリには不要です。
 
 ## 収集するもの
 
@@ -24,19 +24,11 @@
 
 ## 実行環境と依存関係
 
-Renderは `.python-version` に書いたバージョンのPythonを使います（[RenderのPythonバージョン設定](https://render.com/docs/python-version)）。`runtime.txt` だけでは古いサービスの既定値3.7.10が使われたため、`.python-version` で指定しています。Renderに `PYTHON_VERSION` が設定されていればそちらが優先なので、`.python-version` と同じ値にするか、削除してください。
+Renderは `.python-version` に書いたバージョンのPythonを使います（[RenderのPythonバージョン設定](https://render.com/docs/python-version)）。`runtime.txt` だけでは古いサービスの既定値3.7.10が使われたため、`.python-version` で指定しています。Renderに `PYTHON_VERSION` が設定されていればそちらが優先なので、`PYTHON_VERSION` を `.python-version` と同じ値にするか削除してください。
 
 `requirements.in` が直接依存、`requirements.txt` が推移依存も含む固定バージョンです。line-bot-sdkは3系ですが、コードは3.0で非推奨になった旧API（`linebot` の `LineBotApi`・`WebhookHandler`・`linebot.models`）を使っています。
 
-```sh
-python3.12 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python -m pip check
-.venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m py_compile gunicorn.conf.py const/env.py main.py monitoring.py line/service.py store/service.py ocr/service.py util/util.py scripts/sentry_smoke.py
-```
-
-依存更新時は、新しい仮想環境で `requirements.in` をインストールしてから `.venv/bin/python -m pip freeze > requirements.txt` で再生成し、上記の確認を実行します。テストは合成データ・模擬API/DB・メモリ内Sentry送信先を使い、実サービスに送信しません。起動確認は生成した一時鍵とローカルエミュレータ指定で実ライブラリを初期化します。
+依存更新時は、新しい仮想環境で `requirements.in` をインストールしてから `.venv/bin/python -m pip freeze > requirements.txt` で再生成します。その後、`requirements.txt` から新しい仮想環境を作り、[CI](../.github/workflows/test.yml)と同じく `pip check`・`py_compile`・テストを実行します。起動確認のテストは、生成した一時鍵とローカルエミュレータ指定で実ライブラリを初期化します。
 
 ## マージ後の確認順序
 
