@@ -135,5 +135,6 @@ class GunicornTests(unittest.TestCase):
         event = self.get_event()
         exception = event["exception"]["values"][-1]
         self.assertEqual(exception["type"], "SystemExit")
-        self.assertIn("handle_abort", [frame.get("function") for frame in exception["stacktrace"]["frames"]])
+        # The error was raised while the worker was running the slow request.
+        self.assertIn("slow", [frame.get("function") for frame in exception["stacktrace"]["frames"]])
         self.assertEqual(self.signed_post('{"events":[]}').status_code, 200)
