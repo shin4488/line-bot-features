@@ -49,7 +49,7 @@ def detect_words(base64_encoded_image, user_id):
 
     return translated_text
 
-# Unlike util.translate_if_not_default_language, translate even into the default language (Japanese), because text in an image can be in any language.
+# Text in an image can be in any language, so translate it even for users of the default language.
 def __translate_by_user_language(text, user_id):
     dict_login_user_document = db_service.get_login_user_document(user_id)
     output_language = dict_login_user_document['language']

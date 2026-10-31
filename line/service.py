@@ -45,10 +45,10 @@ def __create_quickreply(user_id):
         quick_reply=QuickReply(items=quick_reply_list)
     )
 
-"""
-Build one quick reply button per setting in setting_data, the comma-separated names from message.SETTING_LIST. Each button posts back "subsetting::<setting name>::<label>:<value>,...", from which handle_postback_message builds the option buttons.
-"""
 def __create_subsetting_list(setting_data, user_id):
+    """
+    Build one quick reply button per setting in setting_data, the comma-separated names from message.SETTING_LIST. Each button posts back "subsetting::<setting name>::<label>:<value>,...", from which handle_postback_message builds the option buttons.
+    """
     setting_menu_list = setting_data.split(",")
     postback_data_list = {
         setting_menu_list[0]:message.LANGUAGES,
@@ -72,10 +72,10 @@ def __create_subsetting_list(setting_data, user_id):
 
     return subsetting_postback_quickbuttons
 
-"""
-Build one quick reply button per option. Each button posts back "<setting name>::<label>::<value>", which handle_postback_message uses to save the setting.
-"""
 def __create_detail_setting_list(setting_type, detail_setting):
+    """
+    Build one quick reply button per option. Each button posts back "<setting name>::<label>::<value>", which handle_postback_message uses to save the setting.
+    """
     detail_setting_list = []
     for details in detail_setting.split(","):
         detail_setting_list.append(
