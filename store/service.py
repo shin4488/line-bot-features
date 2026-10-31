@@ -20,10 +20,8 @@ class ConvenienceStoreService():
         self.__user_id = user_id
         self.__translated_rate_message = util.translate_if_not_default_language('評価', self.__user_id)
 
-    """
-    search convenience stores with toilets near the location
-    """
     def search_convenience_store(self, latitude, longitude):
+        """Search for convenience stores with toilets near the location."""
         endpoint = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
         header = {
             'Content-Type':'application/json'
@@ -102,7 +100,7 @@ class ConvenienceStoreService():
         detail_message = open_message
         if rating is not None:
             detail_message += ' ' + self.__translated_rate_message + ': ' + str(rating) + ' / 5'
-        # LINE carousel columns with titles accept at most 60 characters.
+        # The text of a LINE carousel column with a title accepts at most 60 characters.
         if len(detail_message) > 60:
             detail_message = detail_message[:57] + '...'
 
