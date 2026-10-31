@@ -9,15 +9,15 @@ from linebot.models import (
 # Separates the fields of postback data.
 SPLITTER = '::'
 # Usage guide sent in reply to text, video and audio messages.
-REMIND_MESSAGE = '位置情報を送信すると、\n近くのコンビニを検索するよ\n画像を送ると、画像の中の文字を日本語に翻訳するよ'
+REMIND_MESSAGE = '位置情報を送ると、\n近くのトイレ付きコンビニを検索するよ\n画像を送ると、画像の中の文字を設定した言語に翻訳するよ'
 
 # The numeric keys only identify messages. They are not the status codes returned by the APIs.
 def ERROR_MESSAGE(error_code):
     __ERROR_MESSAGE_LIST = {
         400: '結果を取得できませんでした',
         404: '検索条件にあう店舗がありません',
-        2100: '画像読み取りに失敗しました\n別の画像を送ってください',
-        2200: '画像読み取りに失敗しました\nもう一度画像を送るか、別の画像を送ってください',
+        2100: '画像から文字を読み取れませんでした\n別の画像を送ってください',
+        2200: '画像の読み取りに失敗しました\nもう一度画像を送るか、別の画像を送ってください',
         'translation_error': 'Translation error...',
         'api_error': 'サーバエラーです\n開発者にお問い合わせください\nwfshinya48@gmail.com'
     }
@@ -40,11 +40,11 @@ QUICK_ACCESS_TOP_MENUS = [
 LANGUAGES = {
     '日本語': 'ja',
     'English': 'en',
-    'Espanol': 'es',
+    'Español': 'es',
     'العربية': 'ar',
     'Français': 'fr',
     '中文': 'zh',
-    '한국': 'ko',
+    '한국어': 'ko',
     'Melayu': 'ms',
     'Kiswahili': 'sw',
     'اردو': 'ur',

@@ -21,8 +21,8 @@ EXTERNAL_API_TIMEOUT = (3.05, 10)
 # Quick reply menu attached to replies: (LINE action type, label).
 MENU = [("location", "トイレ付きコンビニ検索"), ("camera", "撮って翻訳"),
         ("cameraRoll", "選択して翻訳"), ("postback", "Setting")]
-LANGUAGE_CODES = {"日本語": "ja", "English": "en", "Espanol": "es", "العربية": "ar", "Français": "fr",
-                  "中文": "zh", "한국": "ko", "Melayu": "ms", "Kiswahili": "sw", "اردو": "ur", "Tagalog": "tl"}
+LANGUAGE_CODES = {"日本語": "ja", "English": "en", "Español": "es", "العربية": "ar", "Français": "fr",
+                  "中文": "zh", "한국어": "ko", "Melayu": "ms", "Kiswahili": "sw", "اردو": "ur", "Tagalog": "tl"}
 # Search range options and the values saved in Firestore.
 RANGE_VALUES = {"0.3km": 1, "0.5km": 2, "1km": 3, "2km": 4, "3km": 5}
 USER_ID = "SYNTHETIC_PRIVATE_USER"
@@ -246,6 +246,8 @@ class ApplicationTests(ApplicationFixture):
         self.http.respond("GET", PLACES_URL, 200, {"status": "OK", "results": [store]})
         self.assertEqual(self.post([self.location_event()]).status_code, 200)
         messages = self.replied_messages()
+        # The alternative text is shown in notifications and the chat list.
+        self.assertEqual(messages[0]["altText"], "トイレ付きコンビニの検索結果")
         self.assertEqual(messages[0]["template"]["columns"], [{
             "title": "Synthetic Store", "text": "営業中 評価: 4 / 5",
             "actions": [{"type": "uri", "label": "Location",
