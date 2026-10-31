@@ -31,6 +31,21 @@ class EdgeCaseTests(ApplicationFixture):
             self.assertLessEqual(len(column["title"]), 40)
             self.assertLessEqual(len(column["text"]), 60)
 
+    def test_long_translations_fit_line_quick_reply_labels(self):
+        self.save_settings(USER_ID, language="en", restaurant_range=2)
+        self.http.respond("GET", TRANSLATION_URL, 200, {"status": 200, "result": {"text": "長" * 200}})
+        self.post([self.text_event()])
+        menu = self.replies()[-1]["messages"][-1]
+        self.tap(menu, "Setting")
+        settings = self.replies()[-1]["messages"][-1]
+        # The menu has 4 buttons and the setting menu has 2; LINE accepts labels of up to 20 characters.
+        for message, count in [(menu, 4), (settings, 2)]:
+            labels = self.labels(message)
+            self.assertEqual(len(labels), count)
+            for label in labels:
+                self.assertTrue(0 < len(label) <= 20, label)
+        self.assertEqual(self.events, [])
+
     def test_ocr_empty_annotation_does_not_send_empty_line_text(self):
         self.http.respond("POST", VISION_URL, 200, detected_text(""))
         self.post([self.image_event()])
