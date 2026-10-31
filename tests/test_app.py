@@ -36,6 +36,12 @@ def translate_unchanged(request):
     return 200, {"status": 200, "result": {"text": request.params["text"], "target": request.params["target"]}}
 
 
+def translate_with_target_prefix(request):
+    # Prefixes the target language, so a test can tell which texts in a reply were translated.
+    target = request.params["target"]
+    return 200, {"status": 200, "result": {"text": f"[{target}] {request.params['text']}", "target": target}}
+
+
 def place(name="Synthetic Store", **fields):
     return {"name": name, "geometry": {"location": {"lat": 35.6815, "lng": 139.7665}}, **fields}
 
@@ -168,6 +174,20 @@ class ApplicationTests(ApplicationFixture):
         messages = self.replied_messages()
         self.assertEqual(messages[0]["text"], self.message.REMIND_MESSAGE)
         self.assert_menu(messages[-1])
+        # Replies to users of the default language, Japanese, are not translated.
+        self.assertEqual(self.http.requests_to("GET", TRANSLATION_URL), [])
+        self.assertEqual(self.events, [])
+
+    def test_replies_to_users_of_other_languages_are_translated(self):
+        self.save_settings(USER_ID, language="en", restaurant_range=2)
+        self.http.handle("GET", TRANSLATION_URL, translate_with_target_prefix)
+        self.assertEqual(self.post([self.text_event()]).status_code, 200)
+        messages = self.replied_messages()
+        self.assertEqual(messages[0]["text"], "[en] " + self.message.REMIND_MESSAGE)
+        self.assertTrue(messages[-1]["text"].startswith("[en] "))
+        self.assertEqual([(item["action"]["type"], item["action"]["label"]) for item in messages[-1]["quickReply"]["items"]],
+                         [("location", "[en] トイレ付きコンビニ検索"), ("camera", "[en] 撮って翻訳"),
+                          ("cameraRoll", "[en] 選択して翻訳"), ("postback", "Setting")])
         self.assertEqual(self.events, [])
 
     def test_processing_failure_is_reported_once_and_replies_fixed_message(self):
@@ -252,8 +272,9 @@ class ApplicationTests(ApplicationFixture):
                          "uri": "https://www.google.co.jp/maps/?q=Synthetic%20Store@35.6815,139.7665"}]}])
         self.assert_menu(messages[-1])
         [places] = self.http.requests_to("GET", PLACES_URL)
-        self.assertEqual({key: places.params[key] for key in ("keyword", "type", "location")},
-                         {"keyword": "トイレ", "type": "convenience_store", "location": "35.6812,139.7671"})
+        self.assertEqual({key: places.params[key] for key in ("key", "keyword", "type", "location")},
+                         {"key": ENVIRONMENT["GOOGLE_API_KEY"], "keyword": "トイレ", "type": "convenience_store",
+                          "location": "35.6812,139.7671"})
         self.assertEqual(self.events, [])
 
     def test_image_text_is_translated_into_user_language_and_replied_with_menu(self):
@@ -263,6 +284,12 @@ class ApplicationTests(ApplicationFixture):
         messages = self.replied_messages()
         self.assertEqual(messages[0]["text"], "Synthetic text")
         self.assert_menu(messages[-1])
+        # The image sent by the user is passed to Vision text detection as base64.
+        [vision] = self.http.requests_to("POST", VISION_URL)
+        self.assertEqual(vision.params["key"], ENVIRONMENT["GOOGLE_API_KEY"])
+        [annotate] = vision.json()["requests"]
+        self.assertEqual(base64.b64decode(annotate["image"]["content"]), IMAGE)
+        self.assertEqual(annotate["features"], [{"type": "TEXT_DETECTION"}])
         self.assertIn({"text": "Synthetic text", "target": "en"},
                       [request.params for request in self.http.requests_to("GET", TRANSLATION_URL)])
         self.assertEqual(self.events, [])
