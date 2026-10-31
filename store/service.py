@@ -70,7 +70,7 @@ class ConvenienceStoreService():
 
         return [
             TemplateSendMessage(
-                alt_text='carousel template',
+                alt_text=util.translate_if_not_default_language('トイレ付きコンビニの検索結果', self.__user_id),
                 template=CarouselTemplate(columns=store_messages)
             )
         ]
