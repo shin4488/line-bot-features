@@ -11,6 +11,9 @@ SPLITTER = '::'
 # Usage guide sent in reply to text, video and audio messages.
 REMIND_MESSAGE = '位置情報を送ると、\n近くのトイレ付きコンビニを検索するよ\n画像を送ると、画像の中の文字を設定した言語に翻訳するよ'
 
+# Sent before the nearby convenience stores shown when none are known to have toilets.
+TOILET_UNCONFIRMED_MESSAGE = 'トイレがあると分かるコンビニが見つからなかったため、近くのコンビニを表示します。トイレの有無は確かめられていません'
+
 # The numeric keys only identify messages. They are not the status codes returned by the APIs.
 def ERROR_MESSAGE(error_code):
     __ERROR_MESSAGE_LIST = {

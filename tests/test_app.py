@@ -213,8 +213,54 @@ class ApplicationTests(ApplicationFixture):
         self.assertEqual(messages[0]["text"], self.message.ERROR_MESSAGE(404))
         self.assert_menu(messages[-1])
         self.assertEqual(self.events, [])
-        [places] = self.http.requests_to("GET", PLACES_URL)
-        self.assertEqual(places.timeout, EXTERNAL_API_TIMEOUT)
+        # No store mentions toilets, and no convenience store is nearby either.
+        toilet_search, nearby_search = self.http.requests_to("GET", PLACES_URL)
+        self.assertEqual(toilet_search.params["keyword"], "トイレ")
+        self.assertNotIn("keyword", nearby_search.params)
+        self.assertEqual([toilet_search.timeout, nearby_search.timeout], [EXTERNAL_API_TIMEOUT] * 2)
+
+    def test_location_without_toilet_matches_replies_nearby_stores_with_unconfirmed_note(self):
+        def places(request):
+            if "keyword" in request.params:
+                return 200, {"status": "ZERO_RESULTS", "results": []}
+            return 200, {"status": "OK", "results": [place(opening_hours={"open_now": False})]}
+        self.http.handle("GET", PLACES_URL, places)
+        self.assertEqual(self.post([self.location_event()]).status_code, 200)
+        messages = self.replied_messages()
+        self.assertEqual(messages[0]["text"], "トイレがあると分かるコンビニが見つからなかったため、"
+                                              "近くのコンビニを表示します。トイレの有無は確かめられていません")
+        self.assertEqual(messages[1]["altText"], "近くのコンビニの検索結果")
+        self.assertEqual([column["title"] for column in messages[1]["template"]["columns"]], ["Synthetic Store"])
+        self.assert_menu(messages[-1])
+        self.assertEqual(len(messages), 3)
+        toilet_search, nearby_search = self.http.requests_to("GET", PLACES_URL)
+        # The second search drops only the keyword, keeping the same place type, location and range.
+        self.assertEqual({key: value for key, value in toilet_search.params.items() if key != "keyword"},
+                         nearby_search.params)
+        self.assertEqual(nearby_search.params["type"], "convenience_store")
+        self.assertEqual(self.events, [])
+
+    def test_nearby_store_note_and_alternative_text_are_translated_for_other_languages(self):
+        self.save_settings(USER_ID, language="en", restaurant_range=2)
+        self.http.handle("GET", TRANSLATION_URL, translate_with_target_prefix)
+        self.http.handle("GET", PLACES_URL, lambda request: (200, {"status": "ZERO_RESULTS", "results": []})
+                         if "keyword" in request.params else (200, {"status": "OK", "results": [place()]}))
+        self.assertEqual(self.post([self.location_event()]).status_code, 200)
+        messages = self.replied_messages()
+        self.assertEqual(messages[0]["text"], "[en] " + self.message.TOILET_UNCONFIRMED_MESSAGE)
+        self.assertEqual(messages[1]["altText"], "[en] 近くのコンビニの検索結果")
+
+    def test_failed_nearby_search_is_reported_and_replies_no_result_message(self):
+        def places(request):
+            if "keyword" in request.params:
+                return 200, {"status": "ZERO_RESULTS", "results": []}
+            return 503, b"Service Unavailable"
+        self.http.handle("GET", PLACES_URL, places)
+        self.assertEqual(self.post([self.location_event()]).status_code, 200)
+        messages = self.replied_messages()
+        self.assertEqual(messages[0]["text"], self.message.ERROR_MESSAGE(400))
+        self.assertEqual(len(messages), 2)
+        self.assertEqual(self.api_failures(), [("places", "http", 503)])
 
     def test_places_http_and_business_failures_are_reported(self):
         for response, failure in [((503, b"Service Unavailable"), ("places", "http", 503)),
@@ -273,6 +319,7 @@ class ApplicationTests(ApplicationFixture):
             "actions": [{"type": "uri", "label": "Location",
                          "uri": "https://www.google.co.jp/maps/?q=Synthetic%20Store@35.6815,139.7665"}]}])
         self.assert_menu(messages[-1])
+        # Stores that mention toilets were found, so the search without the keyword is not sent.
         [places] = self.http.requests_to("GET", PLACES_URL)
         self.assertEqual({key: places.params[key] for key in ("key", "keyword", "type", "location")},
                          {"key": ENVIRONMENT["GOOGLE_API_KEY"], "keyword": "トイレ", "type": "convenience_store",

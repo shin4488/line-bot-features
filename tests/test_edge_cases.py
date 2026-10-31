@@ -229,5 +229,6 @@ class EdgeCaseTests(ApplicationFixture):
                 if selection is not None:
                     self.save_settings(USER_ID, language="ja", restaurant_range=selection)
                 self.post([self.location_event()])
-                [places] = self.http.requests_to("GET", PLACES_URL)
-                self.assertEqual(int(places.params["radius"]), meters)
+                # Both the search for toilets and the search for nearby stores use the saved range.
+                self.assertEqual([int(places.params["radius"]) for places in self.http.requests_to("GET", PLACES_URL)],
+                                 [meters, meters])

@@ -21,12 +21,10 @@ class ConvenienceStoreService():
         self.__translated_rate_message = util.translate_if_not_default_language('評価', self.__user_id)
 
     def search_convenience_store(self, latitude, longitude):
-        """Search for convenience stores with toilets near the location."""
-        endpoint = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-        header = {
-            'Content-Type':'application/json'
-        }
+        """Search for convenience stores with toilets near the location.
 
+        If none are found, reply with nearby convenience stores and a note that their toilets are unconfirmed.
+        """
         dict_login_user_document = db_service.get_login_user_document(self.__user_id)
         output_language = dict_login_user_document['language']
         radius_by_selection = {selection: int(float(distance.removesuffix('km')) * 1000)
@@ -38,42 +36,56 @@ class ConvenienceStoreService():
             'radius': radius_by_selection.get(search_range, radius_by_selection['2']),
             'type': 'convenience_store',
             'language': output_language,
-            'keyword': 'トイレ',
             'location': str(latitude) + ',' + str(longitude)
         }
-        store_response = requests.get(endpoint, headers=header, params=parameters, timeout=monitoring.HTTP_TIMEOUT)
-        if store_response.status_code != 200:
-            monitoring.report_api_failure("places", "http", store_response.status_code)
-            return self.__error_response()
 
-        store_result_json = store_response.json()
-        if store_result_json.get("status") not in {"OK", "ZERO_RESULTS"}:
-            monitoring.report_api_failure("places", "api")
+        store_results = self.__search_places({**parameters, 'keyword': 'トイレ'})
+        if store_results is None:
             return self.__error_response()
+        if len(store_results) > 0:
+            return [self.__create_carousel_message(store_results, 'トイレ付きコンビニの検索結果')]
 
-        store_results = store_result_json['results']
+        # The keyword matches only the places whose content indexed by Google, such as names and reviews,
+        # mentions toilets, so it misses most stores even when they have one.
+        store_results = self.__search_places(parameters)
+        if store_results is None:
+            return self.__error_response()
         if len(store_results) == 0:
             error_message = message.ERROR_MESSAGE(404)
             translated_error_message = util.translate_if_not_default_language(error_message, self.__user_id)
             return [TextSendMessage(text=translated_error_message)]
 
-        store_messages = []
-        store_count = 0
-        for store_result in store_results:
-            carouse = self.__create_store_carousel(store_result)
-            store_messages.append(carouse)
-
-            store_count += 1
-            # A carousel template accepts up to 10 columns; this bot shows at most 5 stores.
-            if store_count >= 5:
-                break
-
+        note = util.translate_if_not_default_language(message.TOILET_UNCONFIRMED_MESSAGE, self.__user_id)
         return [
-            TemplateSendMessage(
-                alt_text=util.translate_if_not_default_language('トイレ付きコンビニの検索結果', self.__user_id),
-                template=CarouselTemplate(columns=store_messages)
-            )
+            TextSendMessage(text=note),
+            self.__create_carousel_message(store_results, '近くのコンビニの検索結果'),
         ]
+
+    def __search_places(self, parameters):
+        """Return the places found, or None after reporting a failed request."""
+        endpoint = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+        header = {
+            'Content-Type':'application/json'
+        }
+        store_response = requests.get(endpoint, headers=header, params=parameters, timeout=monitoring.HTTP_TIMEOUT)
+        if store_response.status_code != 200:
+            monitoring.report_api_failure("places", "http", store_response.status_code)
+            return None
+
+        store_result_json = store_response.json()
+        if store_result_json.get("status") not in {"OK", "ZERO_RESULTS"}:
+            monitoring.report_api_failure("places", "api")
+            return None
+        # A payload without a list of results raises here, so it is reported as an unexpected error.
+        return list(store_result_json['results'])
+
+    def __create_carousel_message(self, store_results, alt_text):
+        # A carousel template accepts up to 10 columns; this bot shows at most 5 stores.
+        store_messages = [self.__create_store_carousel(store_result) for store_result in store_results[:5]]
+        return TemplateSendMessage(
+            alt_text=util.translate_if_not_default_language(alt_text, self.__user_id),
+            template=CarouselTemplate(columns=store_messages)
+        )
 
     def __error_response(self):
         error_message = message.ERROR_MESSAGE(400)
